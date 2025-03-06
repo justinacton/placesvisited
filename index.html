@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>US States Travelled Map</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin=""/>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+            crossorigin=""></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="title-section">
+                <h1>US States I've Travelled</h1>
+                <input type="text" id="map-title" placeholder="My Travel Map" maxlength="50">
+            </div>
+            
+            <div class="user-section">
+                <button id="login-btn">Login</button>
+                <div id="user-container">
+                    <span id="user-email"></span>
+                    <select id="maps-dropdown">
+                        <option value="">Select a saved map</option>
+                    </select>
+                    <button id="new-map-btn">New Map</button>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button id="reset-btn">Reset Map</button>
+                <button id="save-btn" disabled>Save Map</button>
+                <button id="share-btn">Share Map</button>
+                <div class="privacy-toggle">
+                    <label for="privacy-switch">Private</label>
+                    <input type="checkbox" id="privacy-switch">
+                    <label for="privacy-switch">Public</label>
+                </div>
+            </div>
+        </header>
+        
+        <main>
+            <div id="map-container">
+                <div id="map"></div>
+            </div>
+            
+            <div class="stats-panel">
+                <h2>Travel Stats</h2>
+                <p>States visited: <span id="states-count">0</span>/50</p>
+                <p>Percentage: <span id="percentage">0%</span></p>
+                
+                <div class="share-link-container" id="share-container">
+                    <h3>Share Your Map</h3>
+                    <input type="text" id="share-link" readonly>
+                    <button id="copy-link-btn">Copy Link</button>
+                    <p id="login-prompt" style="display: none;">
+                        <small>Login to create a permanent link for your map.</small>
+                    </p>
+                </div>
+            </div>
+        </main>
+        
+        <div class="instructions">
+            <h3>How to Use</h3>
+            <p>Click on states you've visited to highlight them. Click again to deselect.</p>
+            <p>Save your map to access it later from any device.</p>
+            <p>Use the "Share Map" button to generate a link you can share with others.</p>
+            <p>Toggle between private and public to control who can see your map.</p>
+        </div>
+    </div>
+    
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="login-title">Login to Your Account</h2>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required minlength="6">
+                </div>
+                
+                <div class="form-group toggle-container">
+                    <label for="signup-toggle">New user?</label>
+                    <input type="checkbox" id="signup-toggle">
+                    <label for="signup-toggle">Sign up</label>
+                </div>
+                
+                <p id="login-error" class="error-message"></p>
+                
+                <button type="submit" id="login-submit">Login</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Custom JS -->
+    <script src="map.js"></script>
+</body>
+</html>
