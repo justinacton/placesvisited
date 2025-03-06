@@ -308,19 +308,53 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Prepare map data for sharing
+        const mapData = {
+            title: document.getElementById('map-title').value || 'My Travel Map',
+            userEmail: currentUser.email,
+            states: Array.from(visitedStates),
+            isPublic: isPublic,
+            createdAt: new Date().toISOString()
+        };
+        
+        // Encode map data as base64
+        const encodedData = btoa(JSON.stringify(mapData));
+        
         // Save map first if needed
         if (!mapId) {
             saveMap().then(data => {
-                const shareUrl = `${window.location.origin}${window.location.pathname}?mapId=${data.id}`;
+                // Generate link to shared.html with encoded data
+                const shareUrl = `${window.location.origin}${window.location.pathname.replace('index.html', 'shared.html')}?mapId=${data.id}&data=${encodedData}`;
                 shareLinkInput.value = shareUrl;
                 shareContainer.classList.add('active');
                 loginPrompt.style.display = 'none';
             });
         } else {
-            const shareUrl = `${window.location.origin}${window.location.pathname}?mapId=${mapId}`;
+            // Generate link to shared.html with encoded data
+            const shareUrl = `${window.location.origin}${window.location.pathname.replace('index.html', 'shared.html')}?mapId=${mapId}&data=${encodedData}`;
             shareLinkInput.value = shareUrl;
             shareContainer.classList.add('active');
             loginPrompt.style.display = 'none';
+        }
+        
+        // Add event listener for copy button if not already added
+        const copyLinkBtn = document.getElementById('copy-link-btn');
+        if (copyLinkBtn) {
+            // Remove existing event listeners to prevent duplicates
+            const newCopyBtn = copyLinkBtn.cloneNode(true);
+            copyLinkBtn.parentNode.replaceChild(newCopyBtn, copyLinkBtn);
+            
+            newCopyBtn.addEventListener('click', function() {
+                shareLinkInput.select();
+                document.execCommand('copy');
+                
+                // Visual feedback
+                const originalText = this.textContent;
+                this.textContent = 'Copied!';
+                setTimeout(() => {
+                    this.textContent = originalText;
+                }, 2000);
+            });
         }
     }
     
@@ -344,120 +378,88 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function setupEventListeners(geoData) {
-        try {
-            // Wrap the entire function in a try-catch block
-            
-            // Check if elements exist before adding event listeners
-            const resetBtn = document.getElementById('reset-btn');
-            if (resetBtn) {
-                resetBtn.addEventListener('click', function() {
-                    if (confirm('Are you sure you want to reset the map? This will clear all selected states.')) {
-                        visitedStates.clear();
-                        localStorage.setItem('travelMapCurrentStates', JSON.stringify([]));
-                        refreshMap(geoData);
-                    }
-                });
+        // Reset button
+        document.getElementById('reset-btn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to reset the map? This will clear all selected states.')) {
+                visitedStates.clear();
+                localStorage.setItem('travelMapCurrentStates', JSON.stringify([]));
+                refreshMap(geoData);
             }
+        });
+        
+        // Save button
+        document.getElementById('save-btn').addEventListener('click', function() {
+            saveMap();
+        });
+        
+        // Share button
+        document.getElementById('share-btn').addEventListener('click', function() {
+            generateShareLink();
+        });
+        
+        // Copy link button
+        document.getElementById('copy-link-btn').addEventListener('click', function() {
+            const shareLinkInput = document.getElementById('share-link');
+            shareLinkInput.select();
+            document.execCommand('copy');
             
-            // Add similar try-catch blocks for each element
-            try {
-                const saveBtn = document.getElementById('save-btn');
-                if (saveBtn) {
-                    saveBtn.addEventListener('click', function() {
-                        saveMap();
-                    });
-                }
-            } catch (e) {
-                console.warn('Error setting up save button:', e);
+            // Visual feedback
+            const originalText = this.textContent;
+            this.textContent = 'Copied!';
+            setTimeout(() => {
+                this.textContent = originalText;
+            }, 2000);
+        });
+        
+        // Privacy toggle
+        document.getElementById('privacy-switch').addEventListener('change', function() {
+            isPublic = this.checked;
+            localStorage.setItem('travelMapIsPublic', isPublic.toString());
+        });
+        
+        // Map title change
+        document.getElementById('map-title').addEventListener('change', function() {
+            localStorage.setItem('travelMapTitle', this.value);
+        });
+        
+        // Login/Logout button
+        document.getElementById('login-btn').addEventListener('click', function() {
+            if (currentUser) {
+                logout();
+            } else {
+                showEmailPrompt();
             }
-            
-            try {
-                const shareBtn = document.getElementById('share-btn');
-                if (shareBtn) {
-                    shareBtn.addEventListener('click', function() {
-                        generateShareLink();
-                    });
-                }
-            } catch (e) {
-                console.warn('Error setting up share button:', e);
+        });
+        
+        // Maps dropdown change
+        document.getElementById('maps-dropdown').addEventListener('change', function() {
+            const selectedMapId = this.value;
+            if (selectedMapId) {
+                window.location.href = `${window.location.pathname}?mapId=${selectedMapId}`;
             }
-            
-            // Add login button event listener
-            try {
-                const loginBtn = document.getElementById('login-btn');
-                if (loginBtn) {
-                    loginBtn.addEventListener('click', function() {
-                        if (currentUser) {
-                            logout();
-                        } else {
-                            showLoginModal();
-                        }
-                    });
-                }
-            } catch (e) {
-                console.warn('Error setting up login button:', e);
+        });
+        
+        // New Map button
+        document.getElementById('new-map-btn').addEventListener('click', function() {
+            window.location.href = window.location.pathname;
+        });
+        
+        // Login form submission
+        document.getElementById('email-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            showMagicLinkModal(email);
+        });
+        
+        // Close modal button
+        document.querySelector('.close-modal').addEventListener('click', closeLoginModal);
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', function(e) {
+            if (e.target === document.getElementById('login-modal')) {
+                closeLoginModal();
             }
-            
-            // Add login form event listeners
-            try {
-                const loginForm = document.getElementById('login-form');
-                if (loginForm) {
-                    loginForm.addEventListener('submit', function(e) {
-                        e.preventDefault();
-                        const email = document.getElementById('email').value;
-                        const password = document.getElementById('password').value;
-                        const isSignup = document.getElementById('signup-toggle').checked;
-                        
-                        if (isSignup) {
-                            register(email, password);
-                        } else {
-                            login(email, password);
-                        }
-                    });
-                }
-                
-                // Toggle between login and signup
-                const signupToggle = document.getElementById('signup-toggle');
-                if (signupToggle) {
-                    signupToggle.addEventListener('change', function() {
-                        const loginTitle = document.getElementById('login-title');
-                        const loginSubmit = document.getElementById('login-submit');
-                        
-                        if (this.checked) {
-                            loginTitle.textContent = 'Create an Account';
-                            loginSubmit.textContent = 'Sign Up';
-                        } else {
-                            loginTitle.textContent = 'Login to Your Account';
-                            loginSubmit.textContent = 'Login';
-                        }
-                    });
-                }
-                
-                // Close modal button
-                const closeModal = document.querySelector('.close-modal');
-                if (closeModal) {
-                    closeModal.addEventListener('click', closeLoginModal);
-                }
-                
-                // Close modal when clicking outside
-                const loginModal = document.getElementById('login-modal');
-                if (loginModal) {
-                    window.addEventListener('click', function(e) {
-                        if (e.target === loginModal) {
-                            closeLoginModal();
-                        }
-                    });
-                }
-            } catch (e) {
-                console.warn('Error setting up login form:', e);
-            }
-            
-            // ... other event listeners ...
-            
-        } catch (error) {
-            console.error('Error in setupEventListeners:', error);
-            // Continue with map functionality even if event listeners fail
-        }
+        });
     }
     
     // Auth functions (simplified for localStorage)
