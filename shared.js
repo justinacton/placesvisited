@@ -15,64 +15,59 @@ document.addEventListener('DOMContentLoaded', function() {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    // Get map ID from URL
+    // Get map data from URL
     const urlParams = new URLSearchParams(window.location.search);
     const mapId = urlParams.get('mapId');
+    const encodedData = urlParams.get('data');
     
-    if (!mapId) {
-        showError("No map ID provided. Please check your link.");
+    if (!encodedData) {
+        showError("No map data provided. Please check your link.");
         return;
     }
     
-    // Load map data from localStorage
-    const allMaps = JSON.parse(localStorage.getItem('travelMapAllMaps') || '[]');
-    const mapData = allMaps.find(m => m.id === mapId);
-    
-    if (!mapData) {
-        showError("Map not found or has been deleted.");
-        return;
+    try {
+        // Decode the map data from base64
+        const mapData = JSON.parse(atob(encodedData));
+        
+        // Set map title and creator
+        document.getElementById('map-title').textContent = mapData.title || "Shared Travel Map";
+        document.title = (mapData.title || "Shared Travel Map") + " - US Travel Map";
+        document.getElementById('creator-name').textContent = mapData.userEmail || "Anonymous";
+        
+        // Load GeoJSON data and display map
+        fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
+            .then(response => response.json())
+            .then(data => {
+                const visitedStates = new Set(mapData.states || []);
+                
+                // Add GeoJSON layer with styling
+                L.geoJSON(data, {
+                    style: function(feature) {
+                        const stateId = feature.properties.name;
+                        return {
+                            fillColor: visitedStates.has(stateId) ? '#3498db' : '#e0e0e0',
+                            weight: 1,
+                            opacity: 1,
+                            color: 'white',
+                            fillOpacity: 0.7
+                        };
+                    },
+                    onEachFeature: function(feature, layer) {
+                        const stateName = feature.properties.name;
+                        layer.bindPopup(stateName);
+                    }
+                }).addTo(map);
+                
+                updateStats(visitedStates, data.features);
+            })
+            .catch(error => {
+                console.error('Error loading GeoJSON data:', error);
+                showError('Failed to load map data. Please try again later.');
+            });
+    } catch (error) {
+        console.error('Error parsing map data:', error);
+        showError("Invalid map data. Please check your link.");
     }
-    
-    if (!mapData.isPublic) {
-        showError("This map is private and cannot be viewed.");
-        return;
-    }
-    
-    // Set map title and creator
-    document.getElementById('map-title').textContent = mapData.title || "Shared Travel Map";
-    document.title = (mapData.title || "Shared Travel Map") + " - US Travel Map";
-    document.getElementById('creator-name').textContent = mapData.userEmail || "Anonymous";
-    
-    // Load GeoJSON data and display map
-    fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
-        .then(response => response.json())
-        .then(data => {
-            const visitedStates = new Set(mapData.states || []);
-            
-            // Add GeoJSON layer with styling
-            L.geoJSON(data, {
-                style: function(feature) {
-                    const stateId = feature.properties.name;
-                    return {
-                        fillColor: visitedStates.has(stateId) ? '#3498db' : '#e0e0e0',
-                        weight: 1,
-                        opacity: 1,
-                        color: 'white',
-                        fillOpacity: 0.7
-                    };
-                },
-                onEachFeature: function(feature, layer) {
-                    const stateName = feature.properties.name;
-                    layer.bindPopup(stateName);
-                }
-            }).addTo(map);
-            
-            updateStats(visitedStates, data.features);
-        })
-        .catch(error => {
-            console.error('Error loading GeoJSON data:', error);
-            showError('Failed to load map data. Please try again later.');
-        });
     
     // Function to update stats
     function updateStats(visitedStates, stateFeatures) {

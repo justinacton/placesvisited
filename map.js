@@ -293,35 +293,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function generateShareLink() {
-        const shareContainer = document.getElementById('share-container');
-        const shareLinkInput = document.getElementById('share-link');
-        const loginPrompt = document.getElementById('login-prompt');
+        const mapData = {
+            title: document.getElementById('map-title').value,
+            userEmail: currentUser?.email || 'Anonymous',
+            states: Array.from(visitedStates),
+            isPublic: true
+        };
         
-        if (visitedStates.size === 0) {
-            alert('Please select at least one state before sharing.');
-            return;
-        }
+        // Encode the map data as base64
+        const encodedData = btoa(JSON.stringify(mapData));
         
-        if (!currentUser) {
-            loginPrompt.style.display = 'block';
-            showLoginModal();
-            return;
-        }
+        // Generate the share URL
+        const baseUrl = window.location.origin + window.location.pathname;
+        const shareUrl = `${baseUrl}shared.html?data=${encodedData}`;
         
-        // Save map first if needed
-        if (!mapId) {
-            saveMap().then(data => {
-                const shareUrl = `${window.location.origin}${window.location.pathname}?mapId=${data.id}`;
-                shareLinkInput.value = shareUrl;
-                shareContainer.classList.add('active');
-                loginPrompt.style.display = 'none';
-            });
-        } else {
-            const shareUrl = `${window.location.origin}${window.location.pathname}?mapId=${mapId}`;
-            shareLinkInput.value = shareUrl;
-            shareContainer.classList.add('active');
-            loginPrompt.style.display = 'none';
-        }
+        return shareUrl;
     }
     
     function showSaveSuccess() {
