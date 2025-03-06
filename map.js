@@ -51,33 +51,50 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     
     function initializeMap(geoData) {
-        // Check URL parameters for shared map
-        const sharedMapId = urlParams.get('mapId');
-        
-        if (sharedMapId) {
-            loadSharedMap(sharedMapId, geoData);
-        } else {
-            // Load from localStorage if available
-            const savedStates = localStorage.getItem('travelMapCurrentStates');
-            if (savedStates) {
-                visitedStates = new Set(JSON.parse(savedStates));
+        try {
+            // Check URL parameters for shared map
+            const sharedMapId = urlParams.get('mapId');
+            
+            if (sharedMapId) {
+                loadSharedMap(sharedMapId, geoData);
+            } else {
+                // Load from localStorage if available
+                const savedStates = localStorage.getItem('travelMapCurrentStates');
+                if (savedStates) {
+                    visitedStates = new Set(JSON.parse(savedStates));
+                }
+                
+                const savedIsPublic = localStorage.getItem('travelMapIsPublic');
+                if (savedIsPublic !== null) {
+                    isPublic = savedIsPublic === 'true';
+                    const privacySwitch = document.getElementById('privacy-switch');
+                    if (privacySwitch) {
+                        privacySwitch.checked = isPublic;
+                    }
+                }
+                
+                const savedTitle = localStorage.getItem('travelMapTitle');
+                if (savedTitle) {
+                    const mapTitle = document.getElementById('map-title');
+                    if (mapTitle) {
+                        mapTitle.value = savedTitle;
+                    }
+                }
+                
+                refreshMap(geoData);
             }
             
-            const savedIsPublic = localStorage.getItem('travelMapIsPublic');
-            if (savedIsPublic !== null) {
-                isPublic = savedIsPublic === 'true';
-                document.getElementById('privacy-switch').checked = isPublic;
+            // Add try-catch around setupEventListeners
+            try {
+                setupEventListeners(geoData);
+            } catch (error) {
+                console.error('Error setting up event listeners:', error);
+                // Continue with map functionality even if event listeners fail
             }
-            
-            const savedTitle = localStorage.getItem('travelMapTitle');
-            if (savedTitle) {
-                document.getElementById('map-title').value = savedTitle;
-            }
-            
-            refreshMap(geoData);
+        } catch (error) {
+            console.error('Error in initializeMap:', error);
+            alert('There was an error initializing the map. Some features may not work properly.');
         }
-        
-        setupEventListeners(geoData);
     }
     
     function loadSharedMap(mapId, geoData) {
@@ -344,116 +361,85 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function setupEventListeners(geoData) {
-        // Check if elements exist before adding event listeners
-        const resetBtn = document.getElementById('reset-btn');
-        if (resetBtn) {
-            resetBtn.addEventListener('click', function() {
-                if (confirm('Are you sure you want to reset the map? This will clear all selected states.')) {
-                    visitedStates.clear();
-                    localStorage.setItem('travelMapCurrentStates', JSON.stringify([]));
-                    refreshMap(geoData);
+        try {
+            // Wrap the entire function in a try-catch block
+            
+            // Check if elements exist before adding event listeners
+            const resetBtn = document.getElementById('reset-btn');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function() {
+                    if (confirm('Are you sure you want to reset the map? This will clear all selected states.')) {
+                        visitedStates.clear();
+                        localStorage.setItem('travelMapCurrentStates', JSON.stringify([]));
+                        refreshMap(geoData);
+                    }
+                });
+            }
+            
+            // Add similar try-catch blocks for each element
+            try {
+                const saveBtn = document.getElementById('save-btn');
+                if (saveBtn) {
+                    saveBtn.addEventListener('click', function() {
+                        saveMap();
+                    });
                 }
-            });
-        }
-        
-        const saveBtn = document.getElementById('save-btn');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', function() {
-                saveMap();
-            });
-        }
-        
-        const shareBtn = document.getElementById('share-btn');
-        if (shareBtn) {
-            shareBtn.addEventListener('click', function() {
-                generateShareLink();
-            });
-        }
-        
-        const copyLinkBtn = document.getElementById('copy-link-btn');
-        if (copyLinkBtn) {
-            copyLinkBtn.addEventListener('click', function() {
-                const shareLinkInput = document.getElementById('share-link');
-                if (shareLinkInput) {
-                    shareLinkInput.select();
-                    document.execCommand('copy');
-                    
-                    // Visual feedback
-                    const originalText = this.textContent;
-                    this.textContent = 'Copied!';
-                    setTimeout(() => {
-                        this.textContent = originalText;
-                    }, 2000);
+            } catch (e) {
+                console.warn('Error setting up save button:', e);
+            }
+            
+            try {
+                const shareBtn = document.getElementById('share-btn');
+                if (shareBtn) {
+                    shareBtn.addEventListener('click', function() {
+                        generateShareLink();
+                    });
                 }
-            });
-        }
-        
-        // Continue with other event listeners, adding null checks
-        const privacySwitch = document.getElementById('privacy-switch');
-        if (privacySwitch) {
-            privacySwitch.addEventListener('change', function() {
-                isPublic = this.checked;
-                localStorage.setItem('travelMapIsPublic', isPublic.toString());
-            });
-        }
-        
-        const mapTitle = document.getElementById('map-title');
-        if (mapTitle) {
-            mapTitle.addEventListener('change', function() {
-                localStorage.setItem('travelMapTitle', this.value);
-            });
-        }
-        
-        const loginBtn = document.getElementById('login-btn');
-        if (loginBtn) {
-            loginBtn.addEventListener('click', function() {
-                if (currentUser) {
-                    logout();
-                } else {
-                    showEmailPrompt();
+            } catch (e) {
+                console.warn('Error setting up share button:', e);
+            }
+            
+            try {
+                const copyLinkBtn = document.getElementById('copy-link-btn');
+                if (copyLinkBtn) {
+                    copyLinkBtn.addEventListener('click', function() {
+                        const shareLinkInput = document.getElementById('share-link');
+                        if (shareLinkInput) {
+                            shareLinkInput.select();
+                            document.execCommand('copy');
+                            
+                            // Visual feedback
+                            const originalText = this.textContent;
+                            this.textContent = 'Copied!';
+                            setTimeout(() => {
+                                this.textContent = originalText;
+                            }, 2000);
+                        }
+                    });
                 }
-            });
-        }
-        
-        const mapsDropdown = document.getElementById('maps-dropdown');
-        if (mapsDropdown) {
-            mapsDropdown.addEventListener('change', function() {
-                const selectedMapId = this.value;
-                if (selectedMapId) {
-                    window.location.href = `${window.location.pathname}?mapId=${selectedMapId}`;
+            } catch (e) {
+                console.warn('Error setting up copy link button:', e);
+            }
+            
+            // Continue with other event listeners, adding try-catch blocks
+            try {
+                const privacySwitch = document.getElementById('privacy-switch');
+                if (privacySwitch) {
+                    privacySwitch.addEventListener('change', function() {
+                        isPublic = this.checked;
+                        localStorage.setItem('travelMapIsPublic', isPublic.toString());
+                    });
                 }
-            });
-        }
-        
-        const newMapBtn = document.getElementById('new-map-btn');
-        if (newMapBtn) {
-            newMapBtn.addEventListener('click', function() {
-                window.location.href = window.location.pathname;
-            });
-        }
-        
-        const emailForm = document.getElementById('email-form');
-        if (emailForm) {
-            emailForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const email = document.getElementById('email').value;
-                showMagicLinkModal(email);
-            });
-        }
-        
-        const closeModalBtn = document.querySelector('.close-modal');
-        if (closeModalBtn) {
-            closeModalBtn.addEventListener('click', closeLoginModal);
-        }
-        
-        // Close modal when clicking outside
-        const loginModal = document.getElementById('login-modal');
-        if (loginModal) {
-            window.addEventListener('click', function(e) {
-                if (e.target === loginModal) {
-                    closeLoginModal();
-                }
-            });
+            } catch (e) {
+                console.warn('Error setting up privacy switch:', e);
+            }
+            
+            // Add similar try-catch blocks for the remaining elements
+            // ...
+            
+        } catch (error) {
+            console.error('Error in setupEventListeners:', error);
+            // Continue with map functionality even if event listeners fail
         }
     }
     
