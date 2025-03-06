@@ -51,50 +51,33 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     
     function initializeMap(geoData) {
-        try {
-            // Check URL parameters for shared map
-            const sharedMapId = urlParams.get('mapId');
-            
-            if (sharedMapId) {
-                loadSharedMap(sharedMapId, geoData);
-            } else {
-                // Load from localStorage if available
-                const savedStates = localStorage.getItem('travelMapCurrentStates');
-                if (savedStates) {
-                    visitedStates = new Set(JSON.parse(savedStates));
-                }
-                
-                const savedIsPublic = localStorage.getItem('travelMapIsPublic');
-                if (savedIsPublic !== null) {
-                    isPublic = savedIsPublic === 'true';
-                    const privacySwitch = document.getElementById('privacy-switch');
-                    if (privacySwitch) {
-                        privacySwitch.checked = isPublic;
-                    }
-                }
-                
-                const savedTitle = localStorage.getItem('travelMapTitle');
-                if (savedTitle) {
-                    const mapTitle = document.getElementById('map-title');
-                    if (mapTitle) {
-                        mapTitle.value = savedTitle;
-                    }
-                }
-                
-                refreshMap(geoData);
+        // Check URL parameters for shared map
+        const sharedMapId = urlParams.get('mapId');
+        
+        if (sharedMapId) {
+            loadSharedMap(sharedMapId, geoData);
+        } else {
+            // Load from localStorage if available
+            const savedStates = localStorage.getItem('travelMapCurrentStates');
+            if (savedStates) {
+                visitedStates = new Set(JSON.parse(savedStates));
             }
             
-            // Add try-catch around setupEventListeners
-            try {
-                setupEventListeners(geoData);
-            } catch (error) {
-                console.error('Error setting up event listeners:', error);
-                // Continue with map functionality even if event listeners fail
+            const savedIsPublic = localStorage.getItem('travelMapIsPublic');
+            if (savedIsPublic !== null) {
+                isPublic = savedIsPublic === 'true';
+                document.getElementById('privacy-switch').checked = isPublic;
             }
-        } catch (error) {
-            console.error('Error in initializeMap:', error);
-            alert('There was an error initializing the map. Some features may not work properly.');
+            
+            const savedTitle = localStorage.getItem('travelMapTitle');
+            if (savedTitle) {
+                document.getElementById('map-title').value = savedTitle;
+            }
+            
+            refreshMap(geoData);
         }
+        
+        setupEventListeners(geoData);
     }
     
     function loadSharedMap(mapId, geoData) {
@@ -399,43 +382,77 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.warn('Error setting up share button:', e);
             }
             
+            // Add login button event listener
             try {
-                const copyLinkBtn = document.getElementById('copy-link-btn');
-                if (copyLinkBtn) {
-                    copyLinkBtn.addEventListener('click', function() {
-                        const shareLinkInput = document.getElementById('share-link');
-                        if (shareLinkInput) {
-                            shareLinkInput.select();
-                            document.execCommand('copy');
-                            
-                            // Visual feedback
-                            const originalText = this.textContent;
-                            this.textContent = 'Copied!';
-                            setTimeout(() => {
-                                this.textContent = originalText;
-                            }, 2000);
+                const loginBtn = document.getElementById('login-btn');
+                if (loginBtn) {
+                    loginBtn.addEventListener('click', function() {
+                        if (currentUser) {
+                            logout();
+                        } else {
+                            showLoginModal();
                         }
                     });
                 }
             } catch (e) {
-                console.warn('Error setting up copy link button:', e);
+                console.warn('Error setting up login button:', e);
             }
             
-            // Continue with other event listeners, adding try-catch blocks
+            // Add login form event listeners
             try {
-                const privacySwitch = document.getElementById('privacy-switch');
-                if (privacySwitch) {
-                    privacySwitch.addEventListener('change', function() {
-                        isPublic = this.checked;
-                        localStorage.setItem('travelMapIsPublic', isPublic.toString());
+                const loginForm = document.getElementById('login-form');
+                if (loginForm) {
+                    loginForm.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        const email = document.getElementById('email').value;
+                        const password = document.getElementById('password').value;
+                        const isSignup = document.getElementById('signup-toggle').checked;
+                        
+                        if (isSignup) {
+                            register(email, password);
+                        } else {
+                            login(email, password);
+                        }
+                    });
+                }
+                
+                // Toggle between login and signup
+                const signupToggle = document.getElementById('signup-toggle');
+                if (signupToggle) {
+                    signupToggle.addEventListener('change', function() {
+                        const loginTitle = document.getElementById('login-title');
+                        const loginSubmit = document.getElementById('login-submit');
+                        
+                        if (this.checked) {
+                            loginTitle.textContent = 'Create an Account';
+                            loginSubmit.textContent = 'Sign Up';
+                        } else {
+                            loginTitle.textContent = 'Login to Your Account';
+                            loginSubmit.textContent = 'Login';
+                        }
+                    });
+                }
+                
+                // Close modal button
+                const closeModal = document.querySelector('.close-modal');
+                if (closeModal) {
+                    closeModal.addEventListener('click', closeLoginModal);
+                }
+                
+                // Close modal when clicking outside
+                const loginModal = document.getElementById('login-modal');
+                if (loginModal) {
+                    window.addEventListener('click', function(e) {
+                        if (e.target === loginModal) {
+                            closeLoginModal();
+                        }
                     });
                 }
             } catch (e) {
-                console.warn('Error setting up privacy switch:', e);
+                console.warn('Error setting up login form:', e);
             }
             
-            // Add similar try-catch blocks for the remaining elements
-            // ...
+            // ... other event listeners ...
             
         } catch (error) {
             console.error('Error in setupEventListeners:', error);
