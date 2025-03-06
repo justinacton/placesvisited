@@ -43,11 +43,28 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load GeoJSON data and initialize map
     fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(initializeMap)
         .catch(error => {
             console.error('Error loading GeoJSON data:', error);
             alert('Failed to load map data. Please try again later.');
+            
+            // Add fallback to local data if available
+            fetch('data/us-states.json')
+                .then(response => {
+                    if (!response.ok) throw new Error('Local data not available');
+                    return response.json();
+                })
+                .then(initializeMap)
+                .catch(localError => {
+                    console.error('Error loading local GeoJSON data:', localError);
+                    showMapLoadError();
+                });
         });
     
     function initializeMap(geoData) {
@@ -293,21 +310,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function generateShareLink() {
-        const mapData = {
-            title: document.getElementById('map-title').value,
-            userEmail: currentUser?.email || 'Anonymous',
-            states: Array.from(visitedStates),
-            isPublic: true
-        };
+        const shareContainer = document.getElementById('share-container');
+        const shareLinkInput = document.getElementById('share-link');
+        const loginPrompt = document.getElementById('login-prompt');
         
-        // Encode the map data as base64
-        const encodedData = btoa(JSON.stringify(mapData));
+        if (visitedStates.size === 0) {
+            alert('Please select at least one state before sharing.');
+            return;
+        }
         
-        // Generate the share URL
-        const baseUrl = window.location.origin + window.location.pathname;
-        const shareUrl = `${baseUrl}shared.html?data=${encodedData}`;
+        if (!currentUser) {
+            loginPrompt.style.display = 'block';
+            showLoginModal();
+            return;
+        }
         
-        return shareUrl;
+        // Save map first if needed
+        if (!mapId) {
+            saveMap().then(data => {
+                const shareUrl = `${window.location.origin}${window.location.pathname}?mapId=${data.id}`;
+                shareLinkInput.value = shareUrl;
+                shareContainer.classList.add('active');
+                loginPrompt.style.display = 'none';
+            });
+        } else {
+            const shareUrl = `${window.location.origin}${window.location.pathname}?mapId=${mapId}`;
+            shareLinkInput.value = shareUrl;
+            shareContainer.classList.add('active');
+            loginPrompt.style.display = 'none';
+        }
     }
     
     function showSaveSuccess() {
@@ -664,5 +695,27 @@ function showFileProtocolError() {
     
     document.querySelector('.close-banner').addEventListener('click', function() {
         errorBanner.remove();
+    });
+}
+
+function showMapLoadError() {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'map-error-message';
+    errorDiv.innerHTML = `
+        <h3>Map Data Loading Error</h3>
+        <p>We couldn't load the map data. This could be due to:</p>
+        <ul>
+            <li>Network connectivity issues</li>
+            <li>The data source being temporarily unavailable</li>
+            <li>CORS restrictions in your browser</li>
+        </ul>
+        <p>Please try refreshing the page or try again later.</p>
+        <button id="retry-load-btn">Retry Loading Map</button>
+    `;
+    
+    document.getElementById('map').appendChild(errorDiv);
+    
+    document.getElementById('retry-load-btn').addEventListener('click', function() {
+        window.location.reload();
     });
 }
