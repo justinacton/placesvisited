@@ -43,28 +43,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load GeoJSON data and initialize map
     fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(initializeMap)
         .catch(error => {
             console.error('Error loading GeoJSON data:', error);
             alert('Failed to load map data. Please try again later.');
-            
-            // Add fallback to local data if available
-            fetch('data/us-states.json')
-                .then(response => {
-                    if (!response.ok) throw new Error('Local data not available');
-                    return response.json();
-                })
-                .then(initializeMap)
-                .catch(localError => {
-                    console.error('Error loading local GeoJSON data:', localError);
-                    showMapLoadError();
-                });
         });
     
     function initializeMap(geoData) {
@@ -361,88 +344,117 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function setupEventListeners(geoData) {
-        // Reset button
-        document.getElementById('reset-btn').addEventListener('click', function() {
-            if (confirm('Are you sure you want to reset the map? This will clear all selected states.')) {
-                visitedStates.clear();
-                localStorage.setItem('travelMapCurrentStates', JSON.stringify([]));
-                refreshMap(geoData);
-            }
-        });
+        // Check if elements exist before adding event listeners
+        const resetBtn = document.getElementById('reset-btn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to reset the map? This will clear all selected states.')) {
+                    visitedStates.clear();
+                    localStorage.setItem('travelMapCurrentStates', JSON.stringify([]));
+                    refreshMap(geoData);
+                }
+            });
+        }
         
-        // Save button
-        document.getElementById('save-btn').addEventListener('click', function() {
-            saveMap();
-        });
+        const saveBtn = document.getElementById('save-btn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function() {
+                saveMap();
+            });
+        }
         
-        // Share button
-        document.getElementById('share-btn').addEventListener('click', function() {
-            generateShareLink();
-        });
+        const shareBtn = document.getElementById('share-btn');
+        if (shareBtn) {
+            shareBtn.addEventListener('click', function() {
+                generateShareLink();
+            });
+        }
         
-        // Copy link button
-        document.getElementById('copy-link-btn').addEventListener('click', function() {
-            const shareLinkInput = document.getElementById('share-link');
-            shareLinkInput.select();
-            document.execCommand('copy');
-            
-            // Visual feedback
-            const originalText = this.textContent;
-            this.textContent = 'Copied!';
-            setTimeout(() => {
-                this.textContent = originalText;
-            }, 2000);
-        });
+        const copyLinkBtn = document.getElementById('copy-link-btn');
+        if (copyLinkBtn) {
+            copyLinkBtn.addEventListener('click', function() {
+                const shareLinkInput = document.getElementById('share-link');
+                if (shareLinkInput) {
+                    shareLinkInput.select();
+                    document.execCommand('copy');
+                    
+                    // Visual feedback
+                    const originalText = this.textContent;
+                    this.textContent = 'Copied!';
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                    }, 2000);
+                }
+            });
+        }
         
-        // Privacy toggle
-        document.getElementById('privacy-switch').addEventListener('change', function() {
-            isPublic = this.checked;
-            localStorage.setItem('travelMapIsPublic', isPublic.toString());
-        });
+        // Continue with other event listeners, adding null checks
+        const privacySwitch = document.getElementById('privacy-switch');
+        if (privacySwitch) {
+            privacySwitch.addEventListener('change', function() {
+                isPublic = this.checked;
+                localStorage.setItem('travelMapIsPublic', isPublic.toString());
+            });
+        }
         
-        // Map title change
-        document.getElementById('map-title').addEventListener('change', function() {
-            localStorage.setItem('travelMapTitle', this.value);
-        });
+        const mapTitle = document.getElementById('map-title');
+        if (mapTitle) {
+            mapTitle.addEventListener('change', function() {
+                localStorage.setItem('travelMapTitle', this.value);
+            });
+        }
         
-        // Login/Logout button
-        document.getElementById('login-btn').addEventListener('click', function() {
-            if (currentUser) {
-                logout();
-            } else {
-                showEmailPrompt();
-            }
-        });
+        const loginBtn = document.getElementById('login-btn');
+        if (loginBtn) {
+            loginBtn.addEventListener('click', function() {
+                if (currentUser) {
+                    logout();
+                } else {
+                    showEmailPrompt();
+                }
+            });
+        }
         
-        // Maps dropdown change
-        document.getElementById('maps-dropdown').addEventListener('change', function() {
-            const selectedMapId = this.value;
-            if (selectedMapId) {
-                window.location.href = `${window.location.pathname}?mapId=${selectedMapId}`;
-            }
-        });
+        const mapsDropdown = document.getElementById('maps-dropdown');
+        if (mapsDropdown) {
+            mapsDropdown.addEventListener('change', function() {
+                const selectedMapId = this.value;
+                if (selectedMapId) {
+                    window.location.href = `${window.location.pathname}?mapId=${selectedMapId}`;
+                }
+            });
+        }
         
-        // New Map button
-        document.getElementById('new-map-btn').addEventListener('click', function() {
-            window.location.href = window.location.pathname;
-        });
+        const newMapBtn = document.getElementById('new-map-btn');
+        if (newMapBtn) {
+            newMapBtn.addEventListener('click', function() {
+                window.location.href = window.location.pathname;
+            });
+        }
         
-        // Login form submission
-        document.getElementById('email-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            showMagicLinkModal(email);
-        });
+        const emailForm = document.getElementById('email-form');
+        if (emailForm) {
+            emailForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const email = document.getElementById('email').value;
+                showMagicLinkModal(email);
+            });
+        }
         
-        // Close modal button
-        document.querySelector('.close-modal').addEventListener('click', closeLoginModal);
+        const closeModalBtn = document.querySelector('.close-modal');
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', closeLoginModal);
+        }
         
         // Close modal when clicking outside
-        window.addEventListener('click', function(e) {
-            if (e.target === document.getElementById('login-modal')) {
-                closeLoginModal();
-            }
-        });
+        const loginModal = document.getElementById('login-modal');
+        if (loginModal) {
+            window.addEventListener('click', function(e) {
+                if (e.target === loginModal) {
+                    closeLoginModal();
+                }
+            });
+        }
     }
     
     // Auth functions (simplified for localStorage)
@@ -695,27 +707,5 @@ function showFileProtocolError() {
     
     document.querySelector('.close-banner').addEventListener('click', function() {
         errorBanner.remove();
-    });
-}
-
-function showMapLoadError() {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'map-error-message';
-    errorDiv.innerHTML = `
-        <h3>Map Data Loading Error</h3>
-        <p>We couldn't load the map data. This could be due to:</p>
-        <ul>
-            <li>Network connectivity issues</li>
-            <li>The data source being temporarily unavailable</li>
-            <li>CORS restrictions in your browser</li>
-        </ul>
-        <p>Please try refreshing the page or try again later.</p>
-        <button id="retry-load-btn">Retry Loading Map</button>
-    `;
-    
-    document.getElementById('map').appendChild(errorDiv);
-    
-    document.getElementById('retry-load-btn').addEventListener('click', function() {
-        window.location.reload();
     });
 }
